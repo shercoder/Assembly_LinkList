@@ -1,0 +1,764 @@
+/*
+ * Program name: 	LinkList
+ *
+ * Programmer name: 	Pardeep Singh
+ *
+ * Created on:		04 December 2011
+ * Last modified on:	7 December 2011
+ *
+ * This program creates a link list of nodes.
+ * It prompts to create sorted and unsorted 
+ * link list. The sorted list provides the 
+ * following functionality: insert (ascending order),
+ * delete (user enters the value of their choice), 
+ * print, clear and option to quit which also clears
+ * the link list automatically if it exists.
+ * The unsorted option provides the following functionality:
+ * push front (which adds a node to the front of the link list),
+ * push back ( which adds a node to the back of the link list),
+ * pop front and pop back deletes node from front and back 
+ * respectively. It also provides print and clear option.
+ * Similar to sorted link list, the quit option clears the 
+ * link list before exiting out to the main menu.
+ */
+program LinkList;
+
+#include ("stdlib.hhf");
+
+type
+	psnode: record
+		number: int32;
+		next: pointer to psnode;
+	endrecord;
+
+type mynode: pointer to psnode;
+	
+static
+	head: pointer to psnode := NULL;
+	isNull: boolean;
+	found: boolean;
+	
+procedure makeNode; @returns( "EAX" ); @forward;
+procedure clear; @forward;
+procedure print; @forward;
+procedure push_front(newNode: mynode); @forward;
+procedure push_back( newNode: mynode); @forward;
+procedure pop_front; @forward;
+procedure pop_back; @forward;
+
+procedure insert( newNode: mynode ); @forward;
+procedure delete; @forward;
+
+procedure sorted_menu; @forward;
+procedure unsorted_menu; @forward;
+
+procedure makeNode;
+begin makeNode;
+	mem.alloc( @size(psnode) );
+	mov( EAX, EBX );
+	
+	//_FOREVER_:
+	forever
+		push( EBX );
+		push( ECX );
+		try
+			stdout.put( "Enter an int32 value: " );
+			
+			stdin.flushInput();
+			stdin.geti32();
+			mov( EAX, ECX );
+			unprotected
+			
+			break;
+			//jmp _ENDFOREVER_;
+			
+			exception( ex.ConversionError )
+				console.cls();
+				stdout.put( nl, nl, "------ ILLEGAL NUMERIC VALUE, PLEASE RE-ENTER ------", nl, nl );
+				//jmp _FOREVER_;
+			
+			exception( ex.ValueOutOfRange )
+				console.cls();
+				stdout.put( nl, nl, "------ VALUE IS OUT OF RANGE, PLEASE RE-ENTER ------",nl, nl );
+				//jmp _FOREVER_;
+				
+			exception( ex.AccessViolation )
+				console.cls();
+				stdout.put( nl, nl, "------ ATTEMPT TO ACCESS AN ILLEGAL MEMORY LOCATION ------", nl );
+				//jmp _FOREVER_;
+		endtry;
+		pop( ECX );
+		pop( EBX );
+	//_ENDFOREVER_:
+	endfor;
+	
+	mov( ECX, (type psnode [EBX]).number );
+	mov( NULL, (type psnode [EBX]).next );
+	mov( EBX, EAX ); 	//@return EAX
+	
+end makeNode;
+
+procedure clear;
+begin clear;
+	mov( head, EAX );
+	
+	cmp( head, NULL );
+	jne _WHILE_;
+	
+	stdout.put( "..= NOTHING TO CLEAR =..", nl, nl );
+	jmp _END_;
+	
+	_WHILE_:
+		cmp( EAX, NULL );
+		je _ENDWHILE_;
+
+		mov( (type psnode [EAX]).next, EBX );
+		mem.free( EAX );
+		mov( EBX, EAX );
+		jmp _WHILE_;
+	_ENDWHILE_:
+		mov( NULL, head );
+		stdout.put( "..= LIST IS CLEARED =..", nl, nl );
+		
+	_END_:
+end clear;
+
+procedure print;
+begin print;
+	push( EAX );
+	push( EBX );
+	
+	mov( head, EAX );
+	
+	cmp( head, NULL );
+	jne _WHILE_;
+	
+	stdout.put( "..= LIST IS EMPTY =..", nl );
+	
+	_WHILE_:
+		cmp( EAX, NULL );
+		je _ENDWHILE_;
+		
+		
+		stdout.put( (type psnode [EAX]).number);
+		stdout.put( " -> " );
+		
+		if ( (type psnode [EAX]).next == NULL ) then
+			stdout.put( "NULL" );
+		endif;
+		
+		mov( (type psnode [EAX]).next, EAX );
+		jmp _WHILE_;
+	_ENDWHILE_:
+	
+	stdout.newln();
+	stdout.newln();
+	
+	pop( EBX );
+	pop( EAX );
+end print;
+
+procedure push_front (newNode: mynode);
+begin push_front;
+	push( EAX );
+	
+	mov( newNode, EAX );
+	mov( head, (type psnode [EAX]).next );
+	mov( EAX, head );
+	
+	mov( newNode, EAX );
+	stdout.put( nl, (type psnode [EAX]).number, " WAS SUCCESSFULLY PUSHED FRONT", nl );
+	stdin.readLn();
+	console.cls();
+	
+	pop( EAX );
+end push_front;
+
+procedure push_back( newNode: mynode);
+begin push_back;
+	push( EAX );
+	push( EBX );
+	
+	mov( newNode, EAX );
+	mov( head, EBX );
+	
+	cmp( EBX, NULL );
+	je _IF_;
+	
+	_WHILE_:
+		cmp ( EBX, NULL );
+		je _END_WHILE_;
+		
+		cmp( (type psnode [EBX]).next, NULL );
+		je _IF_1_;
+		
+		mov( (type psnode [EBX]).next, EBX );
+		jmp _WHILE_;
+	_END_WHILE_:
+		mov( EAX, (type psnode [EBX]).next );
+		jmp _END_IF_;
+		
+	_IF_1_:
+		jmp _END_WHILE_;
+	
+	_IF_:
+		push_front( EAX );
+	_END_IF_:
+	
+	mov( newNode, EAX );
+	stdout.put( nl, (type psnode [EAX]).number, " WAS SUCCESSFULLY PUSHED TO BACK", nl );
+	stdin.readLn();
+	console.cls();
+	
+	pop( EBX );
+	pop( EAX );
+end push_back;
+
+procedure pop_front;
+begin pop_front;
+	push( EAX );
+	push( EBX );
+	push( ECX );
+	
+	mov( head, EAX );
+	
+	cmp( head, NULL );
+	je _END_IF_;
+	
+	mov( (type psnode [EAX]).next, head );
+	mov( (type psnode [EAX]).number, ECX ); //just storing the data to display later
+	mov( EAX, EBX );
+	mov( head, EAX );
+	
+	mem.free( EBX );
+	mov( NULL, EBX );
+	
+	stdout.put( nl, (type int32 ECX), " WAS SUCCESSFULLY POPPED FROM FRONT", nl );
+	stdin.readLn();
+	console.cls();
+	jmp _END_;
+	
+	_END_IF_:
+		stdout.put( "..= LIST IS EMPTY =..", nl, nl );
+	
+	_END_:
+	
+	pop( ECX );
+	pop( EBX );
+	pop( EAX );
+end pop_front;
+
+procedure pop_back;
+begin pop_back;
+	push( EAX );
+	push( EBX );
+	push( ECX );
+	
+	cmp( head, NULL );
+	jne _IF_MAIN_;
+	
+	stdout.put( "..= LIST IS EMPTY =..", nl, nl );
+	jmp _END_IF_MAIN_;
+	
+	_IF_MAIN_:
+		mov( head, EAX );
+		
+		cmp( (type psnode [EAX]).next, NULL );
+		jne _IF_;
+	
+		;//else do this
+		mem.free( EAX );
+		mov( NULL, head );
+		stdout.put( "..= LAST NODE HAS BEEN DELETED =..", nl, nl );
+		jmp  _END_IF_MAIN_;
+		
+		_IF_:
+			_WHILE_:
+				cmp( EAX, NULL );
+				je _ENDWHILE_;
+				
+				cmp( (type psnode [EAX]).next, NULL );
+				je _ENDWHILE_;
+				
+				mov( EAX, EBX );
+				mov( (type psnode [EAX]).next, EAX );
+				mov( (type psnode [EAX]).number, ECX );
+				jmp _WHILE_;
+			_ENDWHILE_:
+			
+			mem.free( EAX );
+			mov( NULL, (type psnode [EBX]).next );
+			stdout.put( nl, (type int32 ECX), " WAS SUCCESSFULLY POPPED FROM BACK", nl );
+			stdin.readLn();
+		
+	_END_IF_MAIN_:
+	
+	pop( ECX );
+	pop( EBX );
+	pop( EAX );
+end pop_back;
+
+procedure insert ( newNode: mynode );
+begin insert;
+	push( EAX );
+	push( EBX );
+	push( ECX );
+	push( EDX );
+	
+	mov( newNode, EDX );
+	mov( head, EAX );
+	
+	cmp( EAX, NULL );
+	je _END_IF_1_;
+		mov ( (type psnode [EAX]).number, ECX );
+	_END_IF_1_:
+	
+	cmp( EAX, NULL );
+	je _IF_EMPTY_;
+	
+	cmp( (type psnode [EDX]).number, ECX );
+	jl _ELSE_IF_LESS_;
+	
+	cmp( (type psnode [EAX]).next, NULL );
+	je _ELSE_IF_GREATER_;
+	
+	jmp _ELSE_;
+	
+	_IF_EMPTY_:
+		push_front( newNode );
+		jmp _ENDIF_;
+		
+	_ELSE_IF_LESS_:
+		push_front( newNode );
+		jmp _ENDIF_;
+	
+	_ELSE_IF_GREATER_:
+		cmp( (type psnode [EDX]).number, ECX );
+		jng _NOT_THE_CASE_;
+		
+		push_back( newNode );
+		
+		_NOT_THE_CASE_:
+			jmp _ENDIF_;
+	
+	_ELSE_:
+		_WHILE_:
+			cmp( EAX, NULL );
+			je _ENDWHILE_;
+			
+			cmp( (type psnode [EDX]).number, ECX );
+			jnge _ENDWHILE_;
+				
+				cmp( (type psnode [EAX]).next, NULL );
+				jne _END_;
+				
+				mov( EAX, EBX );
+				mov( (type psnode [EAX]).next, EAX );
+				jmp _ENDWHILE_;
+			_END_:
+			
+			mov( EAX, EBX );
+			mov( (type psnode [EAX]).next, EAX );
+			mov( (type psnode [EAX]).number, ECX );
+			jmp _WHILE_;
+		_ENDWHILE_:
+		
+		mov( EAX, (type psnode [EDX]).next );
+		mov( newNode, (type psnode [EBX]).next );
+		stdout.put( nl, "..= NUMBER WAS SUCCESSFULLY INSERTED =..", nl, nl );
+		stdin.readLn();
+		console.cls();
+	_ENDIF_:
+	
+	pop( EDX );
+	pop( ECX );
+	pop( EBX );
+	pop( EAX );
+end insert;
+
+procedure delete;
+begin delete;
+
+	push( EAX );
+	push( EBX );
+	push( ECX );
+	push( EDX );
+	
+	console.cls();
+	
+	mov( head, EAX );
+	
+	cmp( EAX, NULL );
+	jne _ELSE_;
+	
+	;//IF
+	stdout.put( "..= NOTHING TO DELETE =..", nl, nl );
+	jmp _ENDIF_OUTTER_;
+		
+	_ELSE_:
+		_FOREVER_:
+			push ( EAX );
+			try
+				stdout.put( "Enter the number to delete: " );
+				stdin.flushInput();
+				stdin.geti32();
+				mov( EAX, EBX );	//preserving the value
+				unprotected
+				
+				jmp _ENDFOREVER_;
+				
+			exception( ex.ConversionError )
+				console.cls();
+				stdout.put( nl, nl, "------ ILLEGAL NUMERIC VALUE, PLEASE RE-ENTER ------", nl, nl );
+				jmp _FOREVER_;
+				
+			exception( ex.ValueOutOfRange )
+				console.cls();
+				stdout.put( nl, nl, "------ VALUE IS OUT OF RANGE, PLEASE RE-ENTER ------",nl, nl );
+				jmp _FOREVER_;
+			endtry;
+			pop( EAX );
+		_ENDFOREVER_:
+		
+		
+		mov( head, EAX );
+		
+		_WHILE_:
+		cmp( EAX, NULL );
+		je _ENDWHILE_;
+			
+			cmp( (type psnode [EAX]).number, EBX );
+			jne _ELSE_1_;
+				
+				cmp( (type psnode [EAX]).next, NULL );
+				je _ELSE_2_;
+				
+					mov( (type psnode [EAX]).next, ECX );
+					mov( false, isNull );
+					jmp _ENDIF_INSIDE_;
+				_ELSE_2_:
+					mov( true, isNull );
+				_ENDIF_INSIDE_:
+				
+				mov( true, found );
+				jmp _ENDWHILE_;
+			_ELSE_1_:
+				mov( false, found );
+			_ENDIF_1_:
+			
+			mov( EAX, EDX );
+			mov( (type psnode [EAX]).next, EAX );
+			jmp _WHILE_;
+		_ENDWHILE_:
+		
+		cmp( found, true );
+		je _IF_3_;
+		
+		stdout.put( nl, "..= NUMBER NOT FOUND =..", nl );
+		stdin.readLn();
+		console.cls();
+		jmp _ENDIF_3_;
+		
+		_IF_3_:
+			cmp( isNull, true );
+			je _IF_4_;
+				
+				cmp( EAX, head );
+				jne _IF_5_;
+					
+					mov( ECX, head );
+					mem.free( EAX );
+					jmp _ENDIF_4_;
+				
+				_IF_5_:
+					mov( ECX, (type psnode [EDX]).next );
+					mem.free( EAX );
+					jmp _ENDIF_4_;
+			
+			_IF_4_:
+				cmp ( EAX, head );
+				je _IF_6_;
+				
+					mem.free( EAX );
+					mov( NULL, (type psnode [EDX]).next );
+					jmp _ENDIF_4_;
+				
+				_IF_6_:
+					mem.free( EAX );
+					mov( NULL, head );
+			_ENDIF_4_:
+		
+			stdout.put( nl, "..= NUMBER SUCCESSFULLY DELETED =..", nl )
+			stdin.readLn();
+			console.cls();
+			jmp _ENDIF_OUTTER_;
+		_ENDIF_3_:
+		
+	_ENDIF_OUTTER_:
+	
+	pop( EDX );
+	pop( ECX );
+	pop( EBX );
+	pop( EAX );
+end delete;
+
+procedure sorted_menu;
+begin sorted_menu;
+	
+	console.cls();
+	stdout.newln();
+	_FOREVER_2_:
+	
+		try
+			stdout.put( "[1] Insert", nl );
+			stdout.put( "[2] Delete", nl );
+			stdout.put( "[3] Print", nl );
+			stdout.put( "[4] Clear", nl );
+			stdout.put( "[0] Quit", nl );
+			
+			stdin.flushInput();
+			stdin.getu8();
+			
+			bound( AX, 0, 4 );
+			
+			unprotected 
+			
+			cmp( AL, 0 );
+			je _ENDFOREVER_2_;	//this is basically a break statement for the forever loop
+			
+		exception( ex.ConversionError )
+			console.cls();
+			stdout.put( nl, nl, "------ ILLEGAL NUMERIC VALUE, PLEASE RE-ENTER ------", nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.ValueOutOfRange )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE IS OUT OF RANGE, PLEASE RE-ENTER ------",nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.AccessViolation )
+			console.cls();
+			stdout.put( nl, nl, "------ ATTEMPT TO ACCESS AN ILLEGAL MEMORY LOCATION ------", nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.BoundInstr )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE OUT OF BOUND ------", nl, nl );
+			jmp _FOREVER_2_;
+		endtry;
+		
+		cmp( AL, 1 );
+		je _INSERT_;
+		
+		cmp( AL, 2 );
+		je _DELETE_;
+		
+		cmp( AL, 3 );
+		je _PRINT_;
+		
+		cmp( AL, 4 );
+		je _CLEAR_;
+		
+		_INSERT_:
+			console.cls();
+			push( EAX );
+			call makeNode;
+			insert( EAX );
+			pop( EAX );
+			jmp _FOREVER_2_;
+			
+		_DELETE_:
+			console.cls();
+			call delete;
+			jmp _FOREVER_2_;
+		
+		_PRINT_:
+			console.cls();
+			call print;
+			jmp _FOREVER_2_;
+			
+		_CLEAR_:
+			console.cls();
+			call clear;
+			jmp _FOREVER_2_;
+		
+	_ENDFOREVER_2_:
+		cmp( head, NULL );
+		jne _CLEAR_IT_;
+		
+	_CLEAR_IT_:
+		call clear;
+	
+end sorted_menu;
+
+procedure unsorted_menu;
+begin unsorted_menu;
+	
+	console.cls();
+	stdout.newln();
+	_FOREVER_2_:
+	
+		try
+			stdout.put( "[1] Push Front", nl );
+			stdout.put( "[2] Push Back", nl );
+			stdout.put( "[3] Pop Front", nl );
+			stdout.put( "[4] Pop Back", nl );
+			stdout.put( "[5] Print", nl );
+			stdout.put( "[6] Clear", nl );
+			stdout.put( "[0] Quit", nl );
+			
+			stdin.flushInput();
+			stdin.getu8();
+			
+			bound( AX, 0, 6 );
+			
+			unprotected 
+			
+			cmp( AL, 0 );
+			je _ENDFOREVER_2_;	//this is basically a break statement for the forever loop
+			
+		exception( ex.ConversionError )
+			console.cls();
+			stdout.put( nl, nl, "------ ILLEGAL NUMERIC VALUE, PLEASE RE-ENTER ------", nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.ValueOutOfRange )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE IS OUT OF RANGE, PLEASE RE-ENTER ------",nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.AccessViolation )
+			console.cls();
+			stdout.put( nl, nl, "------ ATTEMPT TO ACCESS AN ILLEGAL MEMORY LOCATION ------", nl, nl );
+			jmp _FOREVER_2_;
+			
+		exception( ex.BoundInstr )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE OUT OF BOUND ------", nl, nl );
+			jmp _FOREVER_2_;
+		endtry;
+		
+		cmp( AL, 1 );
+		je _PUSH_FRONT_;
+		
+		cmp( AL, 2 );
+		je _PUSH_BACK_;
+		
+		cmp( AL, 3 );
+		je _POP_FRONT_;
+		
+		cmp( AL, 4 );
+		je _POP_BACK_;
+		
+		cmp( AL, 5 );
+		je _PRINT_;
+		
+		cmp( AL, 6 );
+		je _CLEAR_;
+		
+		_PUSH_FRONT_:
+			console.cls();
+			push( EAX );
+			call makeNode;
+			push_front( EAX );
+			pop( EAX );
+			jmp _FOREVER_2_;
+			
+		_PUSH_BACK_:
+			console.cls();
+			push( EAX );
+			call makeNode;
+			push_back( EAX );
+			pop( EAX );
+			jmp _FOREVER_2_;
+			
+		_POP_FRONT_:
+			console.cls();
+			call pop_front;
+			jmp _FOREVER_2_;
+			
+		_POP_BACK_:
+			console.cls();
+			call pop_back;
+			jmp _FOREVER_2_;
+			
+		_PRINT_:
+			console.cls();
+			call print;
+			jmp _FOREVER_2_;
+			
+		_CLEAR_:
+			console.cls();
+			call clear;
+			jmp _FOREVER_2_;
+		_ENDIF_:
+		
+	_ENDFOREVER_2_:
+		cmp( head, NULL );
+		jne _CLEAR_IT_;
+		
+	_CLEAR_IT_:
+		call clear;
+	
+end unsorted_menu;
+
+begin LinkList;
+
+	_FOREVER_1_:
+		stdout.put( nl, nl, ".... head-> LINK->LIST-> null ....", nl, nl );
+		
+		try
+			stdout.put( "[1] Sorted", nl );
+			stdout.put( "[2] Unsorted", nl );
+			stdout.put( "[0] Quit", nl );
+			
+			stdin.flushInput();
+			stdin.getu8();
+			
+			bound( AX, 0, 2 );
+			
+			unprotected 
+			
+			cmp( AL, 0 );
+			je _ENDFOREVER_1_;	//this is basically a break statement for the forever loop
+			
+		exception( ex.ConversionError )
+			console.cls();
+			stdout.put( nl, nl, "------ ILLEGAL NUMERIC VALUE, PLEASE RE-ENTER ------", nl );
+			jmp _FOREVER_1_;
+			
+		exception( ex.ValueOutOfRange )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE IS OUT OF RANGE, PLEASE RE-ENTER ------",nl );
+			jmp _FOREVER_1_;
+			
+		exception( ex.AccessViolation )
+			console.cls();
+			stdout.put( nl, nl, "------ ATTEMPT TO ACCESS AN ILLEGAL MEMORY LOCATION ------", nl );
+			jmp _FOREVER_1_;
+			
+		exception( ex.BoundInstr )
+			console.cls();
+			stdout.put( nl, nl, "------ VALUE OUT OF BOUND ------", nl );
+			jmp _FOREVER_1_;
+		endtry;
+		
+		cmp( AL, 1 );
+		je _IF_1;
+		
+		cmp( AL, 2 );
+		je _ELSE_1;
+		
+		_IF_1:
+			call sorted_menu;
+			console.cls();
+			jmp _FOREVER_1_;
+		_ELSE_1:
+			call unsorted_menu;
+			console.cls();
+			jmp _FOREVER_1_;
+		_ENDIF_1:
+		
+	_ENDFOREVER_1_:
+	
+end LinkList;
